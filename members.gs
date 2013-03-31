@@ -20,28 +20,34 @@ START_LIST_ROW=2;
 INPUT_DATE_CELL="B1";
 OUTPUT_DATE_COL=4;
 
-//
+// Name of group that contains singers contacts
+CONTACT_GROUP_NAME="MembersList";
+
 // Add/remove requested members from first sheet
-//
 function updateMembersList() {
   ss = SpreadsheetApp.getActiveSpreadsheet();
   editSheet = ss.getSheetByName(EDITING_SHEET_NAME);
   masterListSheet = ss.getSheetByName(MASTER_LIST_SHEET_NAME);
+
+  // Do the deletion first so that the an email can be changed by
+  // putting the member in both sides with the different email address
   
-  // Is there anything to try
-  var nMaxSrcRows=editSheet.getDataRange().getNumRows() - (START_EDIT_ROW - 1);
-  if(nMaxSrcRows > 0) {
-    addNewMembers(editSheet, masterListSheet);
-  }
   // Data has been removed
   nMaxSrcRows=editSheet.getDataRange().getNumRows() - (START_EDIT_ROW - 1);
   if(nMaxSrcRows > 0) {  
     deleteRequestedMembers(editSheet, masterListSheet);
   }
   
+  // Is there anything to try
+  var nMaxSrcRows=editSheet.getDataRange().getNumRows() - (START_EDIT_ROW - 1);
+  if(nMaxSrcRows > 0) {
+    addNewMembers(editSheet, masterListSheet);
+  }
+  
   // Organise final list
   removeDuplicates(masterListSheet);
   sortBySurname(masterListSheet);
+  
 }
 
 // Add requested members from first sheet
@@ -53,6 +59,11 @@ function addNewMembers(srcSheet, destSheet) {
   // None to add
   if(newMemberData.getValue() == "") return;
   
+  // First add the new members to the contact group
+  contactGroup = getContactGroup();
+  newMemberValues = newMemberData.getValues();
+  addContacts(newMemberValues, contactGroup);
+  
   var nCurrentMembers = destSheet.getDataRange().getNumRows() - 1; //Take off title row  
   var destRange = destSheet.getRange(START_LIST_ROW+nCurrentMembers,1);
   newMemberData.moveTo(destRange);
@@ -62,7 +73,28 @@ function addNewMembers(srcSheet, destSheet) {
   var startRow=START_LIST_ROW+nCurrentMembers;
   var endRow=startRow+newMemberData.getNumRows() - 2; //Take off title row & 1 for difference
   dateCell.copyValuesToRange(destSheet, OUTPUT_DATE_COL, OUTPUT_DATE_COL, startRow, endRow);
-    
+}
+
+/// Adds new contacts to the email group
+/// @param info 2D array of surname, forename, email
+/// @param group The group to update
+function addContacts(info, group) {
+  for(i in info) {
+    surname = info[i][NEW_SURNAME_COL-1];
+    forename = info[i][NEW_FORENAME_COL-1];
+    emailAddress = info[i][NEW_EMAIL_COL-1];
+    if(surname != "" && forename != "" && emailAddress != "") {
+      contact = ContactsApp.getContact(emailAddress);
+      if(contact) {
+         Browser.msgBox("A contact with email \"" + emailAddress 
+                        + "\" already exists. Name=" + contact.getFullName() 
+                        + "\\nContact not updated.");
+      }
+      else {
+        group.addContact(ContactsApp.createContact(forename, surname, emailAddress));
+      }
+    }
+  }
 }
 
 // Delete requested members from first sheet
@@ -74,7 +106,12 @@ function deleteRequestedMembers(srcSheet, destSheet) {
   // None to delete
   if(delMemberData.getValue() == "") return;
 
+  
+  // First remove the  members from the contact group & the contacts
   var delMemberDataValues=delMemberData.getValues();
+  contactGroup = getContactGroup();
+  removeContacts(delMemberDataValues, contactGroup);
+  
   var masterListLength=destSheet.getDataRange().getNumRows();
   var memberListData = destSheet.getRange(START_LIST_ROW,NEW_SURNAME_COL,masterListLength-1,NEW_EMAIL_COL-NEW_SURNAME_COL+1).getValues();
   for(i in delMemberDataValues) {
@@ -90,6 +127,30 @@ function deleteRequestedMembers(srcSheet, destSheet) {
     }
   }
   delMemberData.clear();
+}
+
+/// Remove contacts from the email group
+/// @param info 2D array of surname, forename, email
+/// @param group The group to update
+function removeContacts(info, group) {
+  for(i in info) {
+    emailAddress = info[i][NEW_EMAIL_COL-1];
+    contact = ContactsApp.getContact(emailAddress);
+    if(contact) {
+      group.removeContact(contact);
+      ContactsApp.deleteContact(contact);
+    }
+  }
+}
+
+// Create or return the contact group
+// @return The members contact group
+function getContactGroup() {
+  var membersGroup = ContactsApp.getContactGroup(CONTACT_GROUP_NAME);
+  if(!membersGroup) {
+    membersGroup = ContactsApp.createContactGroup(CONTACT_GROUP_NAME);
+  }
+  return membersGroup;
 }
 
 // Remove any duplicate members. Duplicates have to
@@ -122,65 +183,4 @@ function sortBySurname(sheet) {
   var wholeRange = sheet.getDataRange();
   var data = sheet.getRange(2, 1, wholeRange.getNumRows(), wholeRange.getNumColumns());
   data.sort([1]);
-}
-
-function onOpen() {
-//  var ss = SpreadsheetApp.getActiveSpreadsheet();
-//  var menuEntries = [{name: "DemoUI", functionName: "updateEmailContactsList"}];
-//  ss.addMenu("Tutorial", menuEntries);
-}
-
-// Name of group that contains singers contacts
-SINGERS_CONTACTS_GROUP="MembersList";
-
-// Update the email contacts list
-function updateEmailContactsList() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var editSheet = ss.getSheetByName(EDITING_SHEET_NAME);
-  var s = editSheet.getRange(DATE_CELL).getValue();
-  Browser.msgBox(s);
-  
-  
-  // First trash current list then recreate. Easiest way to deal with changed emails etc
-  //group = ContactsApp.getContactGroup(SINGERS_CONTACTS_GROUP);
-  
-//
-//  ss = SpreadsheetApp.getActiveSpreadsheet();
-//  masterListSheet = ss.getSheetByName("Members List");
-//  nMembers = masterListSheet.getDataRange().getNumRows() - 1;
-//  var memberListData = masterListSheet.getRange(START_LIST_ROW,NEW_SURNAME_COL,nMembers,NEW_EMAIL_COL-NEW_SURNAME_COL+1).getValues();
-//
-//  // i is the index from 0 into 2D javascript array memberListData
-//  for(i in memberListData) { 
-//    emailAddress = memberListData[i][NEW_EMAIL_COL-1];
-//    contacts = ContactsApp.getContactsByEmailAddress(emailAddress);
-//    if(contacts.length == 0) {
-//      
-//    }
-//    else {
-//      contact
-//    }
-//  }
-//  
-//  Browser.msgBox(s);
-//  
-////  var membersGroup = ContactsApp.getContactGroup(SINGERS_CONTACTS_GROUP);
-////  if(!membersGroup) {
-////    membersGroup = ContactsApp.createContactGroup(SINGERS_CONTACTS_GROUP);
-////  }
-  
-  
-  
-    //membersGroup = ContactsApp.createContactGroup("Members");
-  //membersGroup.addContact(ContactsApp.createContact("Martyn", "Gigg", "test@email.com"));
-  
-  //   var app = UiApp.createApplication();  
-//   var form = app.createFormPanel();
-//   var flow = app.createFlowPanel();
-//   flow.add(app.createRichTextArea().setStyleName("textBox").setStyleAttribute("font-family", "Arial"));
-//   flow.add(app.createSubmitButton("Submit"));
-//   form.add(flow);
-//   app.add(form);
-//   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-//   spreadsheet.show(app);
 }
