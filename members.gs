@@ -100,7 +100,7 @@ function addContacts(info, group) {
 // Delete requested members from first sheet
 // @param srcSheet Sheet containing members to be deleted
 // @param destSheet Sheet where members are to be deleted
-function deleteRequestedMembers(srcSheet, destSheet) {
+function deleteRequestedMembers(srcSheet, destSheet) {  
   var nMaxSrcRows=srcSheet.getDataRange().getNumRows() - 2;
   var delMemberData = srcSheet.getRange(START_EDIT_ROW, DEL_SURNAME_COL, nMaxSrcRows, DEL_EMAIL_COL-DEL_SURNAME_COL+1);
   // None to delete
@@ -183,4 +183,73 @@ function sortBySurname(sheet) {
   var wholeRange = sheet.getDataRange();
   var data = sheet.getRange(2, 1, wholeRange.getNumRows(), wholeRange.getNumColumns());
   data.sort([1]);
+}
+
+REGISTER_NAME="Register";
+REGISTER_INDEX=2;
+ROWS_PER_BLOCK=67;
+REGISTER_COL1=1;
+REGISTER_COL2=5;
+TICK_COL_WIDTH=30; //pixels
+  
+// Create a register from the current
+// members list
+function createRegister() {
+  membersSpreadSheet = SpreadsheetApp.getActiveSpreadsheet();
+  registerSheet = membersSpreadSheet.getSheetByName(REGISTER_NAME);
+  if(registerSheet) {
+    SpreadsheetApp.setActiveSheet(registerSheet);
+    membersSpreadSheet.deleteActiveSheet();
+  }
+  registerSheet = membersSpreadSheet.insertSheet(REGISTER_INDEX); //makes sheet active
+  registerSheet.setName(REGISTER_NAME);
+  
+  var membersSheet = membersSpreadSheet.getSheetByName(MASTER_LIST_SHEET_NAME);
+  var nMembers = membersSheet.getDataRange().getNumRows()-1; //take off top row
+  
+  var ntotalBlocks=Math.floor(nMembers / ROWS_PER_BLOCK);
+  var ntailValues=nMembers % (ROWS_PER_BLOCK);
+  Logger.log("Number of blocks: " + ntotalBlocks);
+  Logger.log("Number of tail values: " + ntailValues);
+
+  var destSurnameCol=REGISTER_COL1;
+  var srcStartRow=START_LIST_ROW;
+  var destStartRow=1;
+  var nrows=ROWS_PER_BLOCK;
+  for(var i=0; i < ntotalBlocks; ++i) {    
+    var memberListRange = membersSheet.getRange(srcStartRow,NEW_SURNAME_COL, nrows,NEW_FORENAME_COL-NEW_SURNAME_COL+1);
+    Logger.log("Copying " + nrows + " from " + srcStartRow + "," + NEW_SURNAME_COL + " to " + destStartRow + "," + destSurnameCol);
+    memberListRange.copyValuesToRange(registerSheet, destSurnameCol, destSurnameCol+1,destStartRow,destStartRow+nrows);
+    // Activate borders
+    registerSheet.getRange(destStartRow,destSurnameCol,nrows,3).setBorder(true,true, false, true, true, true);
+    
+    // Next block
+    srcStartRow += nrows;
+    if(destSurnameCol == REGISTER_COL1) {
+      destSurnameCol=REGISTER_COL2;
+    }
+    else {
+      destSurnameCol=REGISTER_COL1;
+      destStartRow=i*ROWS_PER_BLOCK+1;
+      //if(i > 0) destStartRow += 2; //Add block separators
+    }
+  }
+  if(ntailValues > 0) {
+    Logger.log("Copying " + ntailValues + " from " + srcStartRow + "," + NEW_SURNAME_COL + " to " + destStartRow + "," + destSurnameCol);
+    var memberListRange = membersSheet.getRange(srcStartRow,NEW_SURNAME_COL, ntailValues,NEW_FORENAME_COL-NEW_SURNAME_COL+1);
+    memberListRange.copyValuesToRange(registerSheet, destSurnameCol, destSurnameCol+1,destStartRow,destStartRow+ntailValues);  
+    // Activate borders
+    registerSheet.getRange(destStartRow,destSurnameCol,ntailValues,3).setBorder(true,true, true, true, true, true);
+  }
+  
+  // Boldify surnames
+  var registerData = registerSheet.getDataRange();
+  var totalDataRows = registerData.getNumRows();
+  registerSheet.getRange(1, REGISTER_COL1, totalDataRows, 1).setFontWeight("bold");
+  registerSheet.getRange(1, REGISTER_COL2, totalDataRows, 1).setFontWeight("bold");
+  
+  // Resize the "tick" column
+  registerSheet.setColumnWidth(REGISTER_COL1+2, TICK_COL_WIDTH);
+  registerSheet.setColumnWidth(REGISTER_COL2+2, TICK_COL_WIDTH);
+    
 }
