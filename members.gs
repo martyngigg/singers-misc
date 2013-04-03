@@ -60,9 +60,8 @@ function addNewMembers(srcSheet, destSheet) {
   if(newMemberData.getValue() == "") return;
   
   // First add the new members to the contact group
-  contactGroup = getContactGroup();
   newMemberValues = newMemberData.getValues();
-  addContacts(newMemberValues, contactGroup);
+  addContacts(newMemberValues);
   
   var nCurrentMembers = destSheet.getDataRange().getNumRows() - 1; //Take off title row  
   var destRange = destSheet.getRange(START_LIST_ROW+nCurrentMembers,1);
@@ -78,21 +77,34 @@ function addNewMembers(srcSheet, destSheet) {
 /// Adds new contacts to the email group
 /// @param info 2D array of surname, forename, email
 /// @param group The group to update
-function addContacts(info, group) {
+function addContacts(info) {
+  
+  // The getContact function has to load all contacts each time so has terrible performance in a loop
+  // for looking up if a contact exists so load them once
+  var group = ContactsApp.getContactGroup(CONTACT_GROUP_NAME);
+  var currentContacts = ContactsApp.getContactsByGroup(group);
+  
   for(i in info) {
     surname = info[i][NEW_SURNAME_COL-1];
     forename = info[i][NEW_FORENAME_COL-1];
     emailAddress = info[i][NEW_EMAIL_COL-1];
-    if(surname != "" && forename != "" && emailAddress != "") {
-      contact = ContactsApp.getContact(emailAddress);
-      if(contact) {
-         Browser.msgBox("A contact with email \"" + emailAddress 
+    if(emailAddress == "n/a" || emailAddress == "" || surname == "" || forename == "") continue;
+
+    // Do we have this email address already
+    var found=false; 
+    for(j in currentContacts) {
+      contact = currentContacts[j];
+      if(contact.getPrimaryEmail() == emailAddress)
+      {
+        found=true;
+        Browser.msgBox("A contact with email \"" + emailAddress 
                         + "\" already exists. Name=" + contact.getFullName() 
-                        + "\\nContact not updated.");
+                        + "\\n Email details not updated.");
+        break;
       }
-      else {
-        group.addContact(ContactsApp.createContact(forename, surname, emailAddress));
-      }
+    }
+    if(!found) {
+      group.addContact(ContactsApp.createContact(forename, surname, emailAddress));
     }
   }
 }
@@ -203,6 +215,8 @@ function createRegister() {
   }
   registerSheet = membersSpreadSheet.insertSheet(REGISTER_INDEX); //makes sheet active
   registerSheet.setName(REGISTER_NAME);
+  // Make sure its big enough or copyValuesToRange fails
+  registerSheet.insertRowsAfter(100,150); //Add 400 rows to end
   
   var membersSheet = membersSpreadSheet.getSheetByName(MASTER_LIST_SHEET_NAME);
   var nMembers = membersSheet.getDataRange().getNumRows()-1; //take off top row
@@ -217,9 +231,12 @@ function createRegister() {
   var destStartRow=1;
   var nrows=ROWS_PER_BLOCK;
   for(var i=0; i < ntotalBlocks; ++i) {    
-    var memberListRange = membersSheet.getRange(srcStartRow,NEW_SURNAME_COL, nrows,NEW_FORENAME_COL-NEW_SURNAME_COL+1);
-    Logger.log("Copying " + nrows + " from " + srcStartRow + "," + NEW_SURNAME_COL + " to " + destStartRow + "," + destSurnameCol);
-    memberListRange.copyValuesToRange(registerSheet, destSurnameCol, destSurnameCol+1,destStartRow,destStartRow+nrows);
+    var memberListRange = membersSheet.getRange(srcStartRow,NEW_SURNAME_COL, nrows, NEW_FORENAME_COL-NEW_SURNAME_COL+1);
+    var rowEnd=destStartRow+nrows;
+    var colEnd=destSurnameCol+1;
+    Logger.log("Copying " + nrows + " from " + srcStartRow + "," + NEW_SURNAME_COL 
+               + " to start=" + destStartRow + "," + destSurnameCol + " end="+rowEnd + "," + colEnd);
+    memberListRange.copyValuesToRange(registerSheet, destSurnameCol, colEnd,destStartRow,rowEnd);
     // Activate borders
     registerSheet.getRange(destStartRow,destSurnameCol,nrows,3).setBorder(true,true, false, true, true, true);
     
