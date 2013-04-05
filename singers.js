@@ -25,6 +25,25 @@ String.prototype.endsWith = function(suffix) {
 };
 
 /**
+ * Returns the superscript for the given date
+ */
+function getSuperscript(dateAsStr)
+{
+  var nchars=dateAsStr.length; // 1 or 2
+  var superscript = "";
+  if(nchars==1 || (nchars == 2 && dateAsStr.charAt(0) != "1")) {
+    if(dateAsStr.endsWith("1")) superscript = "st";
+    else if(dateAsStr.endsWith("2")) superscript = "nd";
+    else if(dateAsStr.endsWith("3")) superscript = "rd";
+    else superscript = "th";
+  }
+  else {
+    superscript = "th";
+  }
+  return superscript;
+}
+
+/**
  * Returns the date of the next Thursday from the current date. Uses getNextDate()
  */
 function nextThursdayAsHTML()
@@ -34,11 +53,7 @@ function nextThursdayAsHTML()
   nextThursday = getNextDate(now,dayToFindIndex);
   var monthNames = [ "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December" ];
-  var dateAsStr =  nextThursday.getDate().toString();
-  var superscript = "";
-  if(dateAsStr.endsWith("1")) superscript = "st";
-  else if(dateAsStr.endsWith("2")) superscript = "nd";
-  else if(dateAsStr.endsWith("3")) superscript = "rd";
-  else superscript = "th";
+  var dateAsStr =  nextThursday.getDate().toString(); // This is the numbered day of the month (1-31)
+  var superscript = getSuperscript(dateAsStr)
   return dateAsStr + "<sup>" + superscript + "</sup> " + monthNames[nextThursday.getMonth()]
 };
