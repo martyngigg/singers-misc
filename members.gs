@@ -47,7 +47,8 @@ function updateMembersList() {
   // Organise final list
   removeDuplicates(masterListSheet);
   sortBySurname(masterListSheet);
-  
+  // Check for any email updates
+  updateContactInfo(masterListSheet);
 }
 
 // Add requested members from first sheet
@@ -196,6 +197,41 @@ function sortBySurname(sheet) {
   var data = sheet.getRange(2, 1, wholeRange.getNumRows(), wholeRange.getNumColumns());
   data.sort([1]);
 }
+
+// Update an email addresses that may have changed
+// @param sheet The sheet containing the members list
+function updateContactInfo(sheet) {
+  var wholeRange = sheet.getDataRange();
+  var dataValues = sheet.getRange(2, 1, wholeRange.getNumRows(), 3).getValues();
+  // The getContact function has to load all contacts each time so has terrible performance in a loop
+  // for looking up if a contact exists so load them once
+  var group = ContactsApp.getContactGroup(CONTACT_GROUP_NAME);
+  var currentContacts = ContactsApp.getContactsByGroup(group);
+
+  for(i in dataValues) {
+    row = dataValues[i];
+    Logger.log(row);
+    surname = row[0];
+    forename = row[1];
+    listEmail = row[2];
+    for(j in currentContacts) {
+      contact = currentContacts[j];
+      contactEmail = contact.getEmails()[0].getAddress();
+      contactName = contact.getFamilyName();
+      if(surname == contactName && listEmail != contactEmail) {
+        contact.removeFromGroup(group);
+        contact.deleteContact();
+        group.addContact(ContactsApp.createContact(forename, surname, listEmail));
+        break;
+      }
+    }
+  }
+}
+
+//-----------------------------------------------------------------------------------------
+// Register functions
+//-----------------------------------------------------------------------------------------
+
 
 REGISTER_NAME="Register";
 REGISTER_INDEX=2;
