@@ -48,7 +48,7 @@ function updateMembersList() {
   removeDuplicates(masterListSheet);
   sortBySurname(masterListSheet);
   // Check for any email updates
-  updateContactInfo(masterListSheet);
+  //updateContactInfo(masterListSheet);
 }
 
 // Add requested members from first sheet
@@ -91,19 +91,20 @@ function addContacts(info) {
     emailAddress = info[i][NEW_EMAIL_COL-1];
     if(emailAddress == "n/a" || emailAddress == "" || surname == "" || forename == "") continue;
 
-    // Do we have this email address already
-    var found=false; 
-    for(j in currentContacts) {
-      contact = currentContacts[j];
-      if(contact.getPrimaryEmail() == emailAddress)
-      {
-        found=true;
-        Browser.msgBox("A contact with email \"" + emailAddress 
-                        + "\" already exists. Name=" + contact.getFullName() 
-                        + "\\n Email details not updated.");
-        break;
-      }
-    }
+//    // Do we have this email address already
+    var found=false;
+    // getPrimaryEmail is causing a server error for some reason...
+//    for(j in currentContacts) {
+//      contact = currentContacts[j];
+//      if(contact.getPrimaryEmail() == emailAddress)
+//      {
+//        found=true;
+//        Browser.msgBox("A contact with email \"" + emailAddress 
+//                        + "\" already exists. Name=" + contact.getFullName() 
+//                        + "\\n Email details not updated.");
+//        break;
+//      }
+//    }
     if(!found) {
       group.addContact(ContactsApp.createContact(forename, surname, emailAddress));
     }
@@ -283,12 +284,15 @@ function createRegister() {
     }
     else {
       destSurnameCol=REGISTER_COL1;
-      destStartRow=i*ROWS_PER_BLOCK+1;
-      //if(i > 0) destStartRow += 2; //Add block separators
+      destStartRow=((i+1)/2)*ROWS_PER_BLOCK+1; // 2 blocks per one set of rows
     }
   }
   if(ntailValues > 0) {
-    Logger.log("Copying " + ntailValues + " from " + srcStartRow + "," + NEW_SURNAME_COL + " to " + destStartRow + "," + destSurnameCol);
+    var rowEnd=destStartRow+nrows;
+    var colEnd=destSurnameCol+1;
+    Logger.log("Copying " + ntailValues + " from " + srcStartRow + "," + NEW_SURNAME_COL 
+               + " to start=" + destStartRow + "," + destSurnameCol + " end="+rowEnd + "," + colEnd);
+    //Logger.log("Copying " + ntailValues + " from " + srcStartRow + "," + NEW_SURNAME_COL + " to " + destStartRow + "," + destSurnameCol);
     var memberListRange = membersSheet.getRange(srcStartRow,NEW_SURNAME_COL, ntailValues,NEW_FORENAME_COL-NEW_SURNAME_COL+1);
     memberListRange.copyValuesToRange(registerSheet, destSurnameCol, destSurnameCol+1,destStartRow,destStartRow+ntailValues);  
     // Activate borders
