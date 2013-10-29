@@ -126,9 +126,9 @@ function deleteRequestedMembers(srcSheet, destSheet) {
   contactGroup = getContactGroup();
   removeContacts(delMemberDataValues, contactGroup);
   
-  var masterListLength=destSheet.getDataRange().getNumRows();
-  var memberListData = destSheet.getRange(START_LIST_ROW,NEW_SURNAME_COL,masterListLength-1,NEW_EMAIL_COL-NEW_SURNAME_COL+1).getValues();
   for(i in delMemberDataValues) {
+    var masterListLength=destSheet.getDataRange().getNumRows();
+    var memberListData = destSheet.getRange(START_LIST_ROW,NEW_SURNAME_COL,masterListLength-1,NEW_EMAIL_COL-NEW_SURNAME_COL+1).getValues();
     var delRow=delMemberDataValues[i];
     var rowNo=START_LIST_ROW;
     for(j in memberListData) {
