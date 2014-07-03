@@ -236,9 +236,10 @@ function updateContactInfo(sheet) {
 
 REGISTER_NAME="Register";
 REGISTER_INDEX=2;
-ROWS_PER_BLOCK=67;
+ROWS_PER_BLOCK=84;
 REGISTER_COL1=1;
 REGISTER_COL2=5;
+NAME_COL_WIDTH=170; //pixels
 TICK_COL_WIDTH=30; //pixels
   
 // Create a register from the current
@@ -305,6 +306,12 @@ function createRegister() {
   registerSheet.getRange(1, REGISTER_COL1, totalDataRows, 1).setFontWeight("bold");
   registerSheet.getRange(1, REGISTER_COL2, totalDataRows, 1).setFontWeight("bold");
   
+  // Resize the "name" columns
+  registerSheet.setColumnWidth(REGISTER_COL1, NAME_COL_WIDTH);
+  registerSheet.setColumnWidth(REGISTER_COL1+1, NAME_COL_WIDTH);
+  registerSheet.setColumnWidth(REGISTER_COL2, NAME_COL_WIDTH);
+  registerSheet.setColumnWidth(REGISTER_COL2+1, NAME_COL_WIDTH);
+
   // Resize the "tick" column
   registerSheet.setColumnWidth(REGISTER_COL1+2, TICK_COL_WIDTH);
   registerSheet.setColumnWidth(REGISTER_COL2+2, TICK_COL_WIDTH);
